@@ -1,15 +1,25 @@
-function [D, D_labels, Y, Y_labels] = load_data(digits, K, N)
+function [D, D_labels, Y, Y_labels] = load_data(digits, K, N, resize)
 % LOAD_DATA Load K training samples and N testing samples of each digit in c
 %   [D, D_labels, Y, Y_Labels] = LOAD_DATA(digits, K, N)
 
 load('train_32x32.mat');
 
+scale = 0.75;
+
 [m,n,~,s] = size(X);
-D = uint8(zeros(m*n,s));
+if resize
+    D = uint8(zeros(m*n*scale^2,s));
+else
+    D = uint8(zeros(m*n,s));
+end
 D_labels = y;
 
-for k = 1:s
-    D(:,k) = reshape(rgb2gray(X(:,:,:,k)),m*n,1);
+parfor k = 1:s
+    d = rgb2gray(X(:,:,:,k));
+    if resize
+        d = imresize(d, scale);
+    end
+    D(:,k) = d(:);
 end
 
 clearvars m n s k X y;
@@ -17,18 +27,28 @@ clearvars m n s k X y;
 load('test_32x32.mat');
 
 [m,n,~,s] = size(X);
-Y = uint8(zeros(m*n,s));
+if resize
+    Y = uint8(zeros(m*n*scale^2,s));
+else
+    Y = uint8(zeros(m*n,s));
+end
 Y_labels = y;
 
-for k = 1:s
-    Y(:,k) = reshape(rgb2gray(X(:,:,:,k)),m*n,1);
+parfor k = 1:s
+    y = rgb2gray(X(:,:,:,k));
+    if resize
+        y = imresize(y, scale);
+    end
+    Y(:,k) = y(:);
 end
 
 clearvars m n s k X y;
 
-digits(digits==0) = 10; % zeros are actually mapped to 10 in labels
 num_classes = length(digits);
 
+%%
+rng(42)
+%%
 rnd_ordering = randperm(size(D,2));
 counts = zeros(1,10); % could probably do better using unique(digits)
 DL = zeros(1,K*num_classes);
