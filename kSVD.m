@@ -1,16 +1,15 @@
 function [D,x,Err] = kSVD(Y,D,T0,Td,tol)
 
 D = normc(D);
-% D(:,find(sum(D) == size(D,1))) = 0;
 K = size(D,2);
 Err = zeros(1, Td);
 
 for iter = 1:Td
     tic
-    %% SparseCodingStage
+    % SparseCodingStage
     x = full(omp(D,Y,D'*D,T0));
     
-    %% Dictionary Update
+    % Dictionary Update
     for k = 1:K
      
         wk = find(x(k,:));
@@ -36,5 +35,5 @@ for iter = 1:Td
     toc
 end
 
-Err = Err(:,1:iter); % Trim trailing zero columns in the event of early break
+Err = Err(:,1:iter);  % Trim trailing zero columns in the event of early break
 end

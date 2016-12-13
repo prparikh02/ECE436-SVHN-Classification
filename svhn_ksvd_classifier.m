@@ -3,17 +3,36 @@ function [C, Err, D_learned] = svhn_ksvd_classifier(digits, K, N, T0, Td, vararg
 
 %% Argument check
 
+% default params
+bin = false;
+crop = false;
+rand_invert = false;
+block_sampling = false;
+tol = 1e-5;
+
+% TODO: make this a struct
 if nargin == 6
-    tol = varargin{1};
-    resize = false;
+    bin = varargin{1};
 elseif nargin == 7
-    tol = varargin{1};
-    resize = varargin{2};
-elseif nargin > 7
-    error('too many arguments');
+    bin = varargin{1};
+    crop = varargin{2};
+elseif nargin == 8
+    bin = varargin{1};
+    crop = varargin{2};
+    rand_invert = varargin{3};
+elseif nargin == 9
+    bin = varargin{1};
+    crop = varargin{2};
+    rand_invert = varargin{3};
+    block_sampling = varargin{4};
+elseif nargin == 10
+    bin = varargin{1};
+    crop = varargin{2};
+    rand_invert = varargin{3};
+    block_sampling = varargin{4};
+    tol = varargin{5};
 else
-    tol = 1e-5;
-    resize = false;
+    error('too many arguments');
 end
 
 digits(digits==0) = 10; % zeros are actually mapped to 10 in labels
@@ -27,35 +46,47 @@ addpath('./ksvdbox13/');
 
 fprintf('----------Loading Data----------\n');
 
-% digits = [2, 3, 9];
-% K = 20;
-% N = 50;
-
 tic
-[D, D_labels, Y, Y_labels] = load_data(digits, K, N, resize);
+[D, D_labels, Y, Y_labels] = load_data(digits, K, N);
 toc
 
-% D = double(binarize(D, 0.20));
-% Y = double(binarize(Y, 0.20));
-% D = double(sum_of_gradients(D));
-% Y = double(sum_of_gradients(Y));
+%% Preprocessing
+if bin
+    D = binarize(D);
+    Y = binarize(Y);
+end
 
+if crop
+    D = reweight_columns(D);
+    Y = reweight_columns(Y);
+end
+
+if rand_invert
+    D = random_invert(D, 0.20);
+    Y = random_invert(Y, 0.20);
+end
+
+if block_sampling
+    D = block_sample(D);
+    Y = block_sample(Y);
+end
+
+% shuffle dictionary
 idx = randperm(size(D,2));
 D = D(:,idx);
 D_labels = D_labels(idx);
+
+% convert to double for computations
 D = double(D);
 Y = double(Y);
 
-%%
+%% K-SVD
 
 fprintf('\n----------Beginning KSVD----------\n');
 
-% T0 = 3;
-% Td = 50;
-
 [D_learned, x, Err] = kSVD(Y, D, T0, Td, tol);
 
-%%
+%% Calculate Results
 
 fprintf('\n----------Calculating Results----------\n');
 
@@ -71,10 +102,6 @@ for s = 1:length(res)
         Dc = D_learned(:,p);
         xc = x(p,:);
         r(c) = norm(ys-Dc*xc(:,s),2);
-%     for c = 1:num_digits
-%         Dc = D_learned(:,splits(c):splits(c)+K-1);
-%         xc = x(splits(c):splits(c)+K-1,:);
-%         r(c) = norm(ys - Dc*xc(:,s),2);
     end
     [~,ind] = min(r);
     c_star(s) = digits(ind);
@@ -91,7 +118,7 @@ fprintf('%6d ', digits);
 fprintf('\n--|------------------------------------\n');
 for k = 1:num_digits
     fprintf('%d | ',digits(k));
-    fprintf('%4.3f  ',C(k,:)/N); % TODO: variable number of samples per class
+    fprintf('%4.3f  ',C(k,:)/N);  % TODO: variable number of samples per class
     fprintf('\n');
 end
 fprintf('\n');
