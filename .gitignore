@@ -3,4 +3,6 @@ svhn-dataset/
 *.mexa64
 *.zip
 *.mat
+*.py
+report/
 

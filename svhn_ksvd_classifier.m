@@ -3,37 +3,17 @@ function [C, Err, D_learned] = svhn_ksvd_classifier(digits, K, N, T0, Td, vararg
 
 %% Argument check
 
-% default params
-bin = false;
-crop = false;
-rand_invert = false;
-block_sampling = false;
-tol = 1e-5;
+p = inputParser;
+addOptional(p, 'resize', false);
+addOptional(p, 'binarize', false);
+addOptional(p, 'crop', false);
+addOptional(p, 'randomInvert', false);
+addParameter(p, 'blockSample', false);
+addParameter(p, 'tol', 1e-5, @isnumeric);
+parse(p, varargin{:});
+p.Results
 
-% TODO: make this a struct
-if nargin == 6
-    bin = varargin{1};
-elseif nargin == 7
-    bin = varargin{1};
-    crop = varargin{2};
-elseif nargin == 8
-    bin = varargin{1};
-    crop = varargin{2};
-    rand_invert = varargin{3};
-elseif nargin == 9
-    bin = varargin{1};
-    crop = varargin{2};
-    rand_invert = varargin{3};
-    block_sampling = varargin{4};
-elseif nargin == 10
-    bin = varargin{1};
-    crop = varargin{2};
-    rand_invert = varargin{3};
-    block_sampling = varargin{4};
-    tol = varargin{5};
-else
-    error('too many arguments');
-end
+tol = p.Results.tol;
 
 digits(digits==0) = 10; % zeros are actually mapped to 10 in labels
 digits = sort(digits);
@@ -51,22 +31,28 @@ tic
 toc
 
 %% Preprocessing
-if bin
+
+if p.Results.resize
+    D = resize(D, [28, 28]);
+    Y = resize(Y, [28, 28]);
+end
+
+if p.Results.binarize
     D = binarize(D);
     Y = binarize(Y);
 end
 
-if crop
-    D = reweight_columns(D);
-    Y = reweight_columns(Y);
+if p.Results.crop
+    D = crop(D, [0, 0, 4, 4]);
+    Y = crop(Y, [0, 0, 4, 4]);
 end
 
-if rand_invert
+if p.Results.randomInvert
     D = random_invert(D, 0.20);
     Y = random_invert(Y, 0.20);
 end
 
-if block_sampling
+if p.Results.blockSample
     D = block_sample(D);
     Y = block_sample(Y);
 end

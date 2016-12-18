@@ -7,7 +7,7 @@ Err = zeros(1, Td);
 for iter = 1:Td
     tic
     % SparseCodingStage
-    x = full(omp(D,Y,D'*D,T0));
+    x = full(omp(D'*Y,D'*D,T0,'checkdict','off'));
     
     % Dictionary Update
     for k = 1:K
