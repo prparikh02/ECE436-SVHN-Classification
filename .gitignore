@@ -3,4 +3,7 @@ svhn-dataset/
 *.mexa64
 *.zip
 report/
+K-SVD/*.py
+K-SVD/*.mat
+K-SVD/*.png
 
